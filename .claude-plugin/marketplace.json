@@ -1,0 +1,16 @@
+{
+  "name": "seo",
+  "owner": {
+    "name": "Kunal"
+  },
+  "metadata": {
+    "description": "SEO and AEO tools for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "sitecheck",
+      "source": "./",
+      "description": "SEO and AEO audit for a live web page: AI crawler access, search and AI-search readiness, share previews, Core Web Vitals, and launch basics."
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "sitecheck",
+  "version": "0.2.0",
+  "description": "SEO and AEO audit for a live web page: AI crawler access, search and AI-search readiness, share previews, Core Web Vitals, and launch basics.",
+  "author": { "name": "Kunal" },
+  "homepage": "https://github.com/kunalmodi/seo",
+  "repository": "https://github.com/kunalmodi/seo",
+  "license": "MIT",
+  "keywords": ["seo", "aeo", "geo", "ai-search", "pagespeed", "open-graph"]
+}
