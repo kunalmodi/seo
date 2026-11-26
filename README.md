@@ -1,52 +1,163 @@
-# sitecheck: SEO and AEO audits for Claude Code
+# sitecheck: SEO and AEO analysis for any website
 
-Point it at a live page and get a short, prioritized list of what to fix so the
-page can be found, chosen and shared: by Google, by AI assistants (ChatGPT,
-Claude, Perplexity, AI Overviews), and in link previews.
+Give it a URL. It checks the page and the site the way Google, Bing and the AI
+assistants (ChatGPT, Claude, Perplexity, Google's AI Overviews) actually see
+them, and returns a short, prioritized list of what to fix.
 
-It's two things:
+It comes in two parts:
 
-- **`sitecheck`**, a fast command-line auditor (one Go binary, no setup). It
-  runs dozens of rule checks and prints the worst problems first.
-- **A Claude Code skill** that runs it, then does what rules can't: looks at
-  your share image, reads your copy, works out what search the page is trying
-  to win, and tells you what to change, grounded in what the evidence actually
-  says about AI search.
+- **An agent skill** (`site-check`) that turns the results into advice. It
+  works out which search the page is trying to win, reads the copy like an
+  editor, looks at the share image, and weighs AEO claims against the evidence
+  instead of the hype.
+- **`sitecheck`**, the command-line engine underneath. It's a single binary
+  with no setup, makes about 120 checks, and puts the worst problems first.
+  It's useful on its own, in scripts or CI.
 
-## Quick start (Claude Code)
+## What makes it different
 
-In Claude Code:
+Most free SEO checkers read your HTML once, with a browser user agent, and
+grade it against a checklist. sitecheck does that too, and adds:
+
+- **It fetches as the crawlers do.** It requests the page as Facebook's and
+  X's preview bots, and as 15 AI crawlers: OAI-SearchBot, GPTBot,
+  ChatGPT-User, ClaudeBot, Claude-SearchBot, PerplexityBot and others.
+  Cloudflare's bot blocking or a firewall rule often turns these away while
+  robots.txt says they're welcome, and the owner rarely knows. Being blocked
+  from AI *search* crawlers is the most common reason a site never shows up in
+  ChatGPT or Perplexity answers.
+- **It looks at the whole site, not only the page.** It reads every sitemap
+  and samples pages from each big section. That catches the problems that sink
+  sites whose pages each look fine:
+  - hundreds of templated pages published on one day: the pattern Google's
+    scaled-content-abuse policy targets, and a common reason a new site drops
+    out of the index overnight
+  - a whole template accidentally set to `noindex`, or with its canonical
+    pointing somewhere else
+  - health pages with no named author or reviewer
+  - translations that 404, are noindexed, or point their canonical back at
+    the original language
+- **It separates the two kinds of AI crawler.** Search crawlers decide whether
+  you can be cited. Training crawlers don't affect that, so blocking GPTBot or
+  ClaudeBot is your call, never an error.
+- **Its AEO advice is graded by evidence.** Every claim in
+  [aeo.md](skills/site-check/aeo.md) carries a source and a confidence level,
+  including a field test of what ChatGPT and Claude really search for and
+  cite.
+- **It uses real data for your own sites.** Connect Search Console and it
+  shows whether Google indexed the page, which canonical Google picked, and
+  the queries where you rank 5th to 20th with real demand: the cheapest wins
+  there are. It also adds Bing backlinks, and the page's rank on Brave Search,
+  the index Claude's web search uses.
+- **It handles any site politely.** It works on competitors' and clients' sites
+  with no accounts, knows which sites are yours, and keeps its requests light.
+
+## What it checks
+
+**Indexing and crawling**
+- HTTP status, soft 404s, redirect chains, http→https redirects
+- `noindex` in the page or its headers, canonical tags, robots.txt rules for
+  each crawler, sitemaps, sitemap entries that redirect, 404 or are
+  noindexed
+- With `-crawl N`: broken internal links (with the page linking to them),
+  orphan pages, hreflang return links, and duplicate titles and descriptions
+  across the site
+
+**Site-wide patterns** (every run)
+- Publishing bursts, sitemap `lastmod` dates that are just build timestamps,
+  oversized sections on a young site
+- Sampled pages from each section: indexable, self-canonical, not thin, and a
+  named author on health topics
+- hreflang alternates: reachable, indexable, and not canonicalised away
+
+**On-page SEO**
+- Title and meta description length (Google cuts them off), h1, heading
+  levels, whether the title and h1 agree
+- Language, viewport, charset, structured data (valid JSON-LD; which rich
+  results it could earn)
+- Image alt text, including product photos wrongly marked decorative
+- Vague, repeated or empty link text, internal `nofollow`
+
+**Content** (main text extracted with [trafilatura](https://github.com/adbar/trafilatura))
+- Word count and heading outline, saved for the agent to read
+- The agent judges which query the page targets, whether the copy answers it,
+  what a searcher would expect that's missing, and trust signals for health
+  and money topics
+
+**AEO: AI search and assistants**
+- Robots.txt and live fetches for each AI search and training crawler
+- How much of the text is in the server HTML (most AI crawlers don't run
+  JavaScript)
+- Entity, author and date markup; a visible byline and an author page with a
+  photo, Person markup and `sameAs` profiles; stock photos
+- Answer-shaped structure, plus how many figures, quotations and cited sources
+  the page has (the strongest lever in the research)
+- Freshness, Content-Signal, llms.txt (reported, but not pushed: there's no
+  evidence it helps)
+- Brave Search rank for the questions you name (`-q`)
+
+**Link previews**
+- Open Graph and X card tags as Facebook and X actually fetch them, duplicate
+  tags
+- The share image: reachable, format, file size, dimensions, aspect ratio. The
+  agent looks at it to check whether text is readable at thumbnail size and
+  whether it survives cropping
+
+**Performance**
+- PageSpeed Insights for mobile and desktop: Lighthouse scores, real-user Core
+  Web Vitals (LCP, INP, CLS), the top opportunities, and failing accessibility
+  and best-practice audits. It falls back to a local Lighthouse run when the
+  free quota runs out
+- Response time, HTML size, compression, HTTP/2
+
+**Security and hygiene**
+- HTTPS, TLS certificate expiry, HSTS, CSP, nosniff, clickjacking protection,
+  referrer policy, leaked server versions, mixed content
+- Broken links on the page
+
+**Your own sites** (with Search Console and Bing connected)
+- Index status, Google's chosen canonical, last crawl, rich results
+- 28 days of clicks, impressions and positions; top, striking-distance and
+  low click-through queries; submitted sitemaps
+- Bing backlinks and linking pages
+
+## Install
+
+**As a Claude Code plugin** (bundles the skill):
 
 ```
 /plugin marketplace add kunalmodi/seo
 /plugin install sitecheck@seo
 ```
 
-Install the binary:
+**The binary** (macOS and Linux):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kunalmodi/seo/main/install.sh | sh
 ```
 
-(or `go install github.com/kunalmodi/seo/cmd/sitecheck@latest`)
+or `go install github.com/kunalmodi/seo/cmd/sitecheck@latest`.
 
-Then just ask: *"check https://mysite.com/pricing"*, *"is this page ready to
-launch?"*, *"why does my link preview look wrong?"* or *"how do I show up in
-ChatGPT for 'best X for Y'?"*. The skill is `/sitecheck:site-check` if you want
-to call it directly.
+The skill is a plain [Agent Skill](https://agentskills.io) folder
+([skills/site-check](skills/site-check)), so any agent that can run shell
+commands can use it. Optional: `brew install uv` turns on main-text extraction
+and site crawling, and Node.js enables the local Lighthouse fallback.
 
-Optional: `brew install uv` turns on the content checks (main-text extraction)
-and site crawling. Everything else works without it.
+## Use
 
-## Without Claude
+Ask your agent things like *"check https://mysite.com/pricing"*, *"why did our
+traffic drop?"*, *"is this page ready to launch?"*, *"why does my link preview
+look wrong?"* or *"how do I show up in ChatGPT for 'best X for Y'?"*
+
+Or run it directly:
 
 ```bash
 sitecheck https://go.dev/
 ```
 
 ```
-sitecheck 0.2.0: https://go.dev/
-0 FAIL, 5 WARN, 21 INFO, 26 PASS
+sitecheck 0.3.0: https://go.dev/
+0 FAIL, 5 WARN, 21 INFO, 25 PASS
 
 ## top fixes
 WARN  [seo] Image alt text: 16 of 55 <img> have no alt attribute ...
@@ -56,77 +167,52 @@ WARN  [content] Title vs h1: they share no words ...
 Run with -full for every finding by area, including 21 INFO notes, or -json.
 ```
 
-`-full` shows everything by area, `-json` is for scripts, `-no-psi` skips the
-~30s performance check, `-crawl 200` adds site-wide checks.
+`-full` shows every finding by area, `-json` gives machine-readable output,
+`-no-psi` skips the ~30s performance check, and `-crawl 200` adds a site crawl.
+The [CLI README](cmd/sitecheck/README.md) has every flag.
 
-## What it checks
+## AEO: what it pushes, and what it deliberately doesn't
 
-- **Can it be found?** Status and redirects, HTTPS, canonical, noindex,
-  robots.txt, sitemap, soft 404s, broken links. With `-crawl`: broken internal
-  links, duplicate titles, sitemap health, orphan pages, hreflang.
-- **Can AI assistants get to it?** robots.txt rules for every AI crawler
-  (split into *search* crawlers, which you want, and *training* crawlers, which
-  are your call), plus live fetches as those crawlers to catch Cloudflare or
-  firewall bot blocking that robots.txt doesn't show. Whether the text is in
-  the HTML, since most AI crawlers don't run JavaScript.
-- **Will it be chosen?** Title, description, h1 and outline; whether they agree;
-  link text; evidence density (figures, quotes, cited sources); author, byline,
-  dates and entity markup; stock photos. Optionally, where the page ranks on
-  Brave Search, the index Claude's web search uses.
-- **Does it look right when shared?** Open Graph and X tags *as Facebook and X
-  fetch them*, and the share image's size, format and crop. The skill looks at
-  the image itself.
-- **Is it fast and sound?** PageSpeed Insights / Lighthouse scores and
-  real-user Core Web Vitals, security headers, mixed content, TLS expiry.
-- **Your own sites:** Google Search Console (indexed or not, queries,
-  positions, "striking distance" keywords) and Bing Webmaster backlinks, when
-  you connect them. Works on anyone's site without them.
+The short version of [aeo.md](skills/site-check/aeo.md):
 
-## AEO: what we check, and what we deliberately don't
-
-AEO ("answer engine optimization") advice online is mostly vendor marketing.
-The skill carries a short evidence file, [aeo.md](skills/site-check/aeo.md),
-with a confidence level and a source for each claim. The gist:
-
-- **Retrieval comes first.** ChatGPT cites mostly from Bing's results, Claude
-  from Brave's. If the page isn't in those results, nothing else matters. So
-  the first AEO advice is usually about Bing indexing and not blocking AI
-  *search* crawlers.
-- **Then quotability.** Direct answers, self-contained passages, and above all
-  statistics, quotations and cited sources (up to ~40% more visibility in the
-  best study there is).
-- **Off-site mentions** (Reddit, reviews, "alternatives" lists) matter more
-  than backlinks for AI visibility.
+- **Retrieval comes first.** ChatGPT cites mostly from Bing's results, and
+  Claude from Brave's. A page that isn't in those results can't be cited, so
+  the first advice is usually about Bing indexing and not blocking the AI
+  search crawlers.
+- **Then quotability:** direct answers, passages that stand on their own, and
+  above all statistics, quotations and cited sources (up to ~40% more
+  visibility in the best study there is).
+- **Off-site mentions** (Reddit, reviews, "alternatives" lists) correlate with
+  AI visibility more than backlinks do.
 
 What it won't push, and why:
 
-- **llms.txt:** 97% of published files got zero requests in Ahrefs' data;
-  Google doesn't use it. sitecheck reports whether you have one, as INFO.
-- **"AI schema" or rewriting into chunks:** Google says neither helps its AI
-  features. Ordinary structured data still helps ordinary search.
-- **Blocking GPTBot or ClaudeBot isn't an error.** Those are training crawlers;
-  blocking them doesn't hide you from AI search.
-- **No promised citations.** Answers vary run to run. The skill explains how to
-  sample assistants properly (clean sessions, several runs, log what was
-  searched, retrieved and cited).
+- **llms.txt:** 97% of published files got no requests in Ahrefs' data, and
+  Google doesn't use them.
+- **"AI schema" or rewriting content into chunks:** Google says neither helps
+  its AI features. Ordinary structured data still helps ordinary search.
+- **Promised citations:** answers vary from run to run. Instead, the skill
+  explains how to sample assistants properly: clean sessions, several runs,
+  and a log of what they searched for, retrieved and cited.
 
 ## Optional keys
 
-All optional. Put them in `~/.config/sitecheck/sitecheck.env` (outside any
-repo); see [config/sitecheck.env.example](config/sitecheck.env.example) for
-step-by-step setup.
+All optional. Put them in `~/.config/sitecheck/sitecheck.env`, outside any
+repo. [config/sitecheck.env.example](config/sitecheck.env.example) walks
+through the setup.
 
 | Key | Adds |
 | --- | --- |
-| `PAGESPEED_API_KEY` | reliable PageSpeed results (the free shared quota often runs out; sitecheck then falls back to local Lighthouse if Node.js is installed) |
+| `PAGESPEED_API_KEY` | reliable PageSpeed results (the free shared quota often runs out) |
 | `GSC_SERVICE_ACCOUNT_FILE` or `GOOGLE_OAUTH_CLIENT_FILE` | Search Console data for your sites (read-only) |
 | `BING_WEBMASTER_API_KEY` | Bing backlinks for your sites |
-| `BRAVE_SEARCH_API_KEY` | the page's Brave Search rank (free plan works) |
+| `BRAVE_SEARCH_API_KEY` | the page's Brave Search rank (the free plan works) |
 
 ## Being polite
 
-One run makes about 50 light requests. Fine for any site, but don't loop it
-over hundreds of pages of a site you don't own.
+A run makes about 60 to 120 light requests, depending on how many sitemaps the
+site has. That's fine for any site, but don't loop it over hundreds of pages
+of a site you don't own.
 
 ## Development
 
@@ -138,8 +224,7 @@ make install   # build into ~/.local/bin
 make skill     # symlink the skill into ~/.claude/skills for live editing
 ```
 
-Releases: push a `v*` tag and GitHub Actions publishes the binaries that
-`install.sh` downloads. More detail on the CLI is in
-[cmd/sitecheck/README.md](cmd/sitecheck/README.md).
+To release, push a `v*` tag. GitHub Actions then publishes the binaries that
+`install.sh` downloads.
 
 MIT licensed.

@@ -40,10 +40,39 @@ win in AI search, pass up to three with `-q "question"`. For a whole site, see
 "Crawling a site" in [reference.md](reference.md).
 
 Findings are marked FAIL, WARN, INFO or PASS, in areas: basics, performance,
-search, seo, content, aeo, site, social, security, links. What each one covers,
+search, sitewide, seo, content, aeo, site, social, security, links. What each one covers,
 the other flags, and how to treat the user's own site versus someone else's are
 in [reference.md](reference.md). Read its "Your site or someone else's" section
 the first time the header says `your site` or `not verified as your site`.
+
+### When traffic or indexed pages dropped
+
+If the user says the site lost traffic or dropped out of Google, the cause is
+usually site-wide, and every single page can look fine. Read the `sitewide`
+area first:
+
+- **Sampled pages noindexed, or canonicals pointing elsewhere:** a deploy or
+  template change told Google to drop them. That's the answer; fix it first.
+- **Publishing burst:** hundreds of pages in one section went up on one day.
+  On a young site, and especially on health or money topics without a named
+  author, this is the pattern Google's scaled-content-abuse policy targets.
+  Read one or two of those pages yourself: do they add anything beyond the
+  sources they restate?
+- **Thin section** and **Health pages without an author** strengthen that
+  reading.
+
+Then ask for what only the owner can see, in this order: Search Console →
+Manual actions; the Pages report's reasons pages aren't indexed ("Crawled -
+currently not indexed" across the site points to quality, "Excluded by
+noindex" or "Blocked" to something technical); Crawl stats, since sitecheck
+only spoofs Googlebot's user agent and a firewall can still block the real
+one. Say plainly what is confirmed and what is a likely cause.
+
+For spam-policy or quality causes, the fix is to remove (404/410) or noindex
+the mass-produced pages and take them out of the sitemap, keep the pages that
+earn their place, put named people on health content, and expect recovery to
+take weeks to months. With a manual action, the owner files a reconsideration
+request after the cleanup.
 
 ## 2. Look at the share image
 

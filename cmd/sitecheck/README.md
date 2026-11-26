@@ -22,6 +22,7 @@ sitecheck -json https://example.com/      # machine-readable
 | links | broken links (the first `-links` N, same-site first) |
 | content | main text via **trafilatura** (saved to `content.md`), word count, heading outline, title vs h1, vague, repeated and empty link text |
 | aeo | AI search and assistants: AI crawler rules in robots.txt (answer vs training crawlers), live fetches with AI user agents (catches firewall/Cloudflare blocks robots.txt doesn't show), text without JavaScript, entity/author/date markup, answer-shaped structure, evidence density (figures, quotations, sources), visible byline and author page on articles, stock photos, Content-Signal, llms.txt; with `BRAVE_SEARCH_API_KEY`, where the page ranks on Brave Search (Claude's search index) for up to 3 questions |
+| sitewide | every sitemap plus 3 sampled pages from each of the 4 largest sections: publishing bursts, build-timestamp lastmods, sampled noindex/canonical/404s, thin sections, health pages with no named author, hreflang alternates that 404, are noindexed or canonicalise to another language |
 | site | `-crawl N`: **advertools** crawls the site (sitemap first, obeys robots.txt); broken internal URLs with their linking page, duplicate titles and descriptions, missing tags, sitemap entries that redirect, error or are noindexed, orphan pages, hreflang return links, site-wide alt and link text (rows saved to `crawl.jl`) |
 | search | sites you own: Google Search Console (index status, Google's canonical, last crawl, rich results, 28 days of clicks, impressions and positions, top and striking-distance queries, sitemaps) and Bing Webmaster Tools (backlinks, linking pages) |
 
@@ -65,5 +66,5 @@ commands:
 They need `uv` (`brew install uv`) and Node.js. Change a pin in `tools.go` and
 here together.
 
-Flags: `-full`, `-json`, `-pass`, `-no-psi`, `-no-search`, `-no-brave`, `-q "question"` (repeatable), `-crawl N`, `-strategy mobile,desktop`,
+Flags: `-full`, `-json`, `-pass`, `-no-psi`, `-no-search`, `-no-brave`, `-no-sitewide`, `-q "question"` (repeatable), `-crawl N`, `-strategy mobile,desktop`,
 `-lighthouse auto|always|off`, `-links 40`, `-out DIR`, `-timeout 20s`.

@@ -9,6 +9,7 @@ Details the main skill file leaves out. Read the section you need.
 | basics | status, HTTPS and the http→https redirect, redirect chains, TLS expiry, compression, HTTP/2, soft 404s, favicon |
 | performance | PageSpeed Insights mobile and desktop: Lighthouse scores, real-user Core Web Vitals (LCP, INP, CLS), top opportunities, failing accessibility, SEO and best-practice audits |
 | social | Open Graph and X card tags *as the crawlers see them* (the page is refetched with the facebookexternalhit and Twitterbot user agents), plus the share image's reachability, format, size, dimensions and aspect ratio |
+| sitewide | reads every sitemap (no crawl) and fetches 3 pages from each of the 4 largest sections: **publishing bursts** (most of a large section last modified on one day, on a site that otherwise varies), build-timestamp lastmods, oversized sections on young sites; sampled pages that are **noindexed, canonicalised elsewhere or broken**, thin sections, **health pages with no named author or reviewer**; and a few hreflang alternates (translations that 404, are noindexed or point their canonical at another language) |
 | seo | title, meta description, h1, lang, viewport, canonical, noindex, robots.txt (also for the preview crawlers), sitemap, JSON-LD, image alt text (including content photos marked `alt=""`) |
 | content | main text extracted by **trafilatura** (saved to `content.md`), word count, heading outline, title vs h1, vague or repeated link text, links with no text |
 | aeo | AI search and assistants (see [aeo.md](aeo.md)): robots.txt rules for each AI crawler, split into ones that answer or cite and ones that only collect training data; live fetches with AI crawlers' user agents to catch firewall or Cloudflare bot blocking; whether the text is in the server HTML; entity, author and date markup; FAQ-style structure; evidence density; byline and author page on articles; stock photos; Content-Signal; llms.txt; and, with a Brave key, the page's rank on Brave Search (Claude's index) |
@@ -17,7 +18,7 @@ Details the main skill file leaves out. Read the section you need.
 | links | broken links on the page (the first 40, same-site first) |
 | search | **your sites only:** Google Search Console (indexed or not, Google's chosen canonical, last crawl, rich results, 28 days of clicks, impressions and positions, top and "striking-distance" queries, sitemaps) and Bing Webmaster Tools (backlinks and linking pages) |
 
-Flags: `-full`, `-json`, `-pass`, `-no-psi`, `-no-search`, `-no-brave`,
+Flags: `-full`, `-json`, `-pass`, `-no-psi`, `-no-search`, `-no-brave`, `-no-sitewide`,
 `-q "question"` (repeatable, up to 3), `-crawl N`, `-strategy mobile,desktop`,
 `-lighthouse auto|always|off`, `-links 40`, `-out DIR`, `-timeout 20s`.
 
@@ -45,7 +46,7 @@ Adjust the report:
   account's email) in Search Console, and verify the site in Bing. Their
   backlinks and keyword rankings need a paid data API (DataForSEO is the
   cheapest). Say so if asked.
-- **Be polite to sites you don't own.** One run makes about 50 light requests.
+- **Be polite to sites you don't own.** One run makes about 60-120 light requests (more sitemaps, more requests).
   Don't loop sitecheck over many pages of someone else's site. Use `-links 0`
   for repeat runs.
 

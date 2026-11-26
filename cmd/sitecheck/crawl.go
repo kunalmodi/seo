@@ -74,16 +74,35 @@ func pathOf(s string) string {
 type sitemapXML struct {
 	XMLName xml.Name
 	URLs    []struct {
-		Loc string `xml:"loc"`
+		Loc     string `xml:"loc"`
+		LastMod string `xml:"lastmod"`
 	} `xml:"url"`
 	Sitemaps []struct {
 		Loc string `xml:"loc"`
 	} `xml:"sitemap"`
 }
 
+// sitemapEntry is one <url> in a sitemap.
+type sitemapEntry struct {
+	loc     string
+	lastmod string // as written; may be empty
+}
+
+// maxChildSitemaps caps how many sitemap files one run fetches.
+const maxChildSitemaps = 50
+
 // sitemapURLs collects page URLs from robots.txt Sitemap: lines (or
-// /sitemap.xml), following sitemap indexes one level, up to max.
+// /sitemap.xml), following sitemap indexes, up to max.
 func sitemapURLs(ctx context.Context, f *fetcher, base *url.URL, max int) []string {
+	var out []string
+	for _, e := range sitemapEntries(ctx, f, base, max) {
+		out = append(out, e.loc)
+	}
+	return out
+}
+
+// sitemapEntries is sitemapURLs with each URL's lastmod.
+func sitemapEntries(ctx context.Context, f *fetcher, base *url.URL, max int) []sitemapEntry {
 	var roots []string
 	if p, err := f.get(ctx, base.ResolveReference(&url.URL{Path: "/robots.txt"}).String(), ""); err == nil && p.status == 200 {
 		_, roots = parseRobots(p.body)
@@ -91,11 +110,12 @@ func sitemapURLs(ctx context.Context, f *fetcher, base *url.URL, max int) []stri
 	if len(roots) == 0 {
 		roots = []string{base.ResolveReference(&url.URL{Path: "/sitemap.xml"}).String()}
 	}
-	var out []string
+	var out []sitemapEntry
 	seen := map[string]bool{}
+	seenLoc := map[string]bool{}
 	var visit func(u string, depth int)
 	visit = func(u string, depth int) {
-		if len(out) >= max || seen[u] || depth > 2 {
+		if len(out) >= max || seen[u] || depth > 2 || len(seen) >= maxChildSitemaps {
 			return
 		}
 		seen[u] = true
@@ -119,8 +139,10 @@ func sitemapURLs(ctx context.Context, f *fetcher, base *url.URL, max int) []stri
 			if len(out) >= max {
 				return
 			}
-			if l := strings.TrimSpace(x.Loc); l != "" {
-				out = append(out, l)
+			// robots.txt often lists the index and its children, so skip repeats.
+			if l := strings.TrimSpace(x.Loc); l != "" && !seenLoc[l] {
+				seenLoc[l] = true
+				out = append(out, sitemapEntry{loc: l, lastmod: strings.TrimSpace(x.LastMod)})
 			}
 		}
 		for _, x := range sm.Sitemaps {

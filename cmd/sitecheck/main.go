@@ -27,6 +27,9 @@
 //	             markup, byline and author page, stock photos,
 //	             answer-shaped structure, evidence, llms.txt, and
 //	             with BRAVE_SEARCH_API_KEY the page's Brave rank (Claude's index)
+//	sitewide     sitemap shape (publishing bursts, dominant sections) and a few
+//	             sampled pages per section (noindex, canonicals, thin, authorless
+//	             health pages, hreflang alternates)
 //	site         with -crawl N: advertools crawls the site; broken links,
 //	             duplicates, sitemap health, orphans, hreflang return links
 //	links        broken links on the page (first -links of them)
@@ -52,7 +55,7 @@ import (
 	"github.com/kunalmodi/seo/internal/env"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 type level int
 
@@ -115,7 +118,7 @@ func (r *report) fact(k string, v any) {
 	r.mu.Unlock()
 }
 
-var areaOrder = []string{"basics", "performance", "search", "seo", "content", "aeo", "site", "social", "security", "links"}
+var areaOrder = []string{"basics", "performance", "search", "sitewide", "seo", "content", "aeo", "site", "social", "security", "links"}
 
 func (r *report) sort() {
 	rank := map[string]int{}
@@ -255,6 +258,7 @@ type options struct {
 	crawl      int
 	userAgent  string
 	brave      bool
+	sitewide   bool
 	queries    []string
 }
 
@@ -284,6 +288,7 @@ func main() {
 	flag.StringVar(&o.lighthouse, "lighthouse", "auto", "local Lighthouse: auto (if PageSpeed fails), always (skip PageSpeed) or off")
 	noSearch := flag.Bool("no-search", false, "skip Google Search Console and Bing Webmaster data")
 	noBrave := flag.Bool("no-brave", false, "skip the Brave Search rank check")
+	noSitewide := flag.Bool("no-sitewide", false, "skip the site-wide checks (sitemap shape and a few sampled pages per section)")
 	var queries multiFlag
 	flag.Var(&queries, "q", "a question the page should rank for on Brave (repeatable, up to 3); default: top Search Console queries, else the title and h1")
 	flag.IntVar(&o.crawl, "crawl", 0, "also crawl up to N pages of the site (sitemap first) with advertools and run cross-page checks")
@@ -302,6 +307,7 @@ func main() {
 	o.psi = !*noPSI
 	o.search = !*noSearch
 	o.brave = !*noBrave
+	o.sitewide = !*noSitewide
 	o.queries = queries
 	o.strategy = splitList(*strategy)
 	o.psiKey = os.Getenv("PAGESPEED_API_KEY")
@@ -386,6 +392,9 @@ func run(ctx context.Context, target *url.URL, o options) (*report, error) {
 			checkBrave(ctx, r, pg.final, d, o.queries)
 		}
 	})
+	if o.sitewide {
+		do(func() { checkSitewide(ctx, r, f, pg, time.Now()) })
+	}
 	if o.crawl > 0 {
 		do(func() { checkSite(ctx, r, f, pg, o.crawl, o.outDir) })
 	}

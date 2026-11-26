@@ -4,13 +4,13 @@
     "name": "Kunal"
   },
   "metadata": {
-    "description": "SEO and AEO tools for Claude Code"
+    "description": "SEO and AEO analysis for websites"
   },
   "plugins": [
     {
       "name": "sitecheck",
       "source": "./",
-      "description": "SEO and AEO audit for a live web page: AI crawler access, search and AI-search readiness, share previews, Core Web Vitals, and launch basics."
+      "description": "SEO and AEO analysis for any website: crawler and AI-crawler access, site-wide indexing risks, on-page SEO, content, share previews, Core Web Vitals and Search Console data."
     }
   ]
 }
