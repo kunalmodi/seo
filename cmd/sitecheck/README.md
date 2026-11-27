@@ -21,7 +21,7 @@ sitecheck -json https://example.com/      # machine-readable
 | security | HSTS, CSP, nosniff, frame protection, referrer policy, version-leaking headers, mixed content |
 | links | broken links (the first `-links` N, same-site first) |
 | content | main text via **trafilatura** (saved to `content.md`), word count, heading outline, title vs h1, vague, repeated and empty link text |
-| aeo | AI search and assistants: AI crawler rules in robots.txt (answer vs training crawlers), live fetches with AI user agents (catches firewall/Cloudflare blocks robots.txt doesn't show), text without JavaScript, entity/author/date markup, answer-shaped structure, direct answers under question headings and in the opening paragraph, evidence density (figures, quotations, sources), visible byline and author page on articles and health/money pages, expert reviewer and editorial-policy link on health/money pages, stock photos, Content-Signal, llms.txt; with `BRAVE_SEARCH_API_KEY`, where the page ranks on Brave Search (Claude's search index) for up to 3 questions |
+| aeo | AI search and assistants: AI crawler rules in robots.txt (answer vs training crawlers), live fetches with AI user agents (catches firewall/Cloudflare blocks robots.txt doesn't show), text without JavaScript, entity/author/date markup, answer-shaped structure, direct answers under question headings and in the opening paragraph, evidence density (figures, quotations, sources), visible byline and author page on articles and health/money pages, expert reviewer and editorial-policy link on health/money pages, stock photos, Content-Signal, llms.txt; with `BRAVE_SEARCH_API_KEY`, where the page ranks on Brave Search (Claude's search index) for up to 3 questions; with `-ask`, what Claude, ChatGPT, Gemini, Perplexity and Grok search for, retrieve and cite when asked those questions through their APIs (how often the site is cited, retrieved or named, and who is cited instead; full answers saved to `answers.md`) |
 | sitewide | every sitemap plus 3 sampled pages from each of the 4 largest sections: publishing bursts, build-timestamp lastmods, sampled noindex/canonical/404s, thin sections, health pages with no named author, hreflang alternates that 404, are noindexed or canonicalise to another language |
 | site | `-crawl N`: **advertools** crawls the site (sitemap first, obeys robots.txt); broken internal URLs with their linking page, duplicate titles and descriptions, missing tags, sitemap entries that redirect, error or are noindexed, orphan pages, hreflang return links, site-wide alt and link text (rows saved to `crawl.jl`) |
 | search | sites you own: Google Search Console (index status, Google's canonical, last crawl, rich results, 28 days of clicks, impressions and positions, top and striking-distance queries, sitemaps) and Bing Webmaster Tools (backlinks, linking pages) |
@@ -42,7 +42,7 @@ either from PATH or via `npx -y lighthouse@13`. That gives lab data only.
 
 Search data is optional: set `GSC_SERVICE_ACCOUNT_FILE` (recommended) or
 `GOOGLE_OAUTH_CLIENT_FILE` plus a one-time `sitecheck auth google`, and
-`BING_WEBMASTER_API_KEY`, and `BRAVE_SEARCH_API_KEY` for the Brave rank check (works on any site). Setup steps are in `config/sitecheck.env.example`.
+`BING_WEBMASTER_API_KEY`, `BRAVE_SEARCH_API_KEY` for the Brave rank check (works on any site), and for `-ask` any of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `PERPLEXITY_API_KEY`, `XAI_API_KEY` (models can be overridden with `SITECHECK_CLAUDE_MODEL`, `SITECHECK_OPENAI_MODEL`, `SITECHECK_GEMINI_MODEL`, `SITECHECK_PERPLEXITY_MODEL`, `SITECHECK_GROK_MODEL`). Setup steps are in `config/sitecheck.env.example`.
 Access is read-only: the Google scope is `webmasters.readonly`.
 
 ## Open-source tools underneath
@@ -66,5 +66,5 @@ commands:
 They need `uv` (`brew install uv`) and Node.js. Change a pin in `tools.go` and
 here together.
 
-Flags: `-full`, `-json`, `-pass`, `-no-psi`, `-no-search`, `-no-brave`, `-no-sitewide`, `-q "question"` (repeatable), `-crawl N`, `-strategy mobile,desktop`,
+Flags: `-full`, `-json`, `-pass`, `-no-psi`, `-no-search`, `-no-brave`, `-no-sitewide`, `-q "question"` (repeatable), `-ask` (sample AI assistants; paid, on your keys), `-ask-runs 2`, `-ask-engines claude,chatgpt,gemini,perplexity,grok`, `-crawl N`, `-strategy mobile,desktop`,
 `-lighthouse auto|always|off`, `-links 40`, `-out DIR`, `-timeout 20s`.

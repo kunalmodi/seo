@@ -26,7 +26,9 @@
 //	             live fetches), text without JavaScript, entity/author/date
 //	             markup, byline and author page, stock photos,
 //	             answer-shaped structure, evidence, llms.txt, and
-//	             with BRAVE_SEARCH_API_KEY the page's Brave rank (Claude's index)
+//	             with BRAVE_SEARCH_API_KEY the page's Brave rank (Claude's index);
+//	             with -ask, what the assistants' APIs search for, retrieve and
+//	             cite when asked the page's questions
 //	sitewide     sitemap shape (publishing bursts, dominant sections) and a few
 //	             sampled pages per section (noindex, canonicals, thin, authorless
 //	             health pages, hreflang alternates)
@@ -35,7 +37,8 @@
 //	links        broken links on the page (first -links of them)
 //
 // Settings (env or ~/.config/sitecheck/sitecheck.env): PAGESPEED_API_KEY,
-// GSC_SERVICE_ACCOUNT_FILE or GOOGLE_OAUTH_CLIENT_FILE, BING_WEBMASTER_API_KEY, BRAVE_SEARCH_API_KEY.
+// GSC_SERVICE_ACCOUNT_FILE or GOOGLE_OAUTH_CLIENT_FILE, BING_WEBMASTER_API_KEY, BRAVE_SEARCH_API_KEY,
+// and for -ask any of ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, PERPLEXITY_API_KEY, XAI_API_KEY.
 // Without a key, PageSpeed Insights often answers 429 (shared quota).
 package main
 
@@ -55,7 +58,7 @@ import (
 	"github.com/kunalmodi/seo/internal/env"
 )
 
-const version = "0.4.1"
+const version = "0.5.0"
 
 type level int
 
@@ -260,6 +263,9 @@ type options struct {
 	brave      bool
 	sitewide   bool
 	queries    []string
+	ask        bool
+	askRuns    int
+	askEngines []string
 }
 
 // multiFlag collects a repeatable string flag.
@@ -290,7 +296,10 @@ func main() {
 	noBrave := flag.Bool("no-brave", false, "skip the Brave Search rank check")
 	noSitewide := flag.Bool("no-sitewide", false, "skip the site-wide checks (sitemap shape and a few sampled pages per section)")
 	var queries multiFlag
-	flag.Var(&queries, "q", "a question the page should rank for on Brave (repeatable, up to 3); default: top Search Console queries, else the title and h1")
+	flag.Var(&queries, "q", "a question the page should answer (repeatable, up to 3), used for Brave rank and -ask; default: top Search Console queries, else the title and h1")
+	flag.BoolVar(&o.ask, "ask", false, "put the questions to the AI assistants' APIs with web search on and record what they search for, retrieve and cite (costs money on your own API keys)")
+	flag.IntVar(&o.askRuns, "ask-runs", 2, "with -ask: how many times to ask each question (1 to 5; answers vary run to run)")
+	askOnly := flag.String("ask-engines", "", "with -ask: only these assistants, e.g. claude,chatgpt (default: every one with a key; choices: claude, chatgpt, gemini, perplexity, grok)")
 	flag.IntVar(&o.crawl, "crawl", 0, "also crawl up to N pages of the site (sitemap first) with advertools and run cross-page checks")
 	flag.IntVar(&o.links, "links", 40, "how many links on the page to check (0 skips)")
 	flag.StringVar(&o.outDir, "out", "", "folder to save the share image in (default: a new temp folder)")
@@ -309,6 +318,7 @@ func main() {
 	o.brave = !*noBrave
 	o.sitewide = !*noSitewide
 	o.queries = queries
+	o.askEngines = splitList(strings.ToLower(*askOnly))
 	o.strategy = splitList(*strategy)
 	o.psiKey = os.Getenv("PAGESPEED_API_KEY")
 	o.userAgent = browserUA
@@ -390,6 +400,9 @@ func run(ctx context.Context, target *url.URL, o options) (*report, error) {
 		}
 		if o.brave {
 			checkBrave(ctx, r, pg.final, d, o.queries)
+		}
+		if o.ask {
+			checkAsk(ctx, r, pg, d, o.queries, o.askRuns, o.askEngines, o.outDir)
 		}
 	})
 	if o.sitewide {

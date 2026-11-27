@@ -135,6 +135,29 @@ do this yourself. It's the most AEO-specific advice you can give. Follow
 4. Report it as a table: search, whether the site is retrieved (and who is
    instead), whether the page answers it, and what to add.
 
+### Sampling the assistants (`-ask`)
+
+`sitecheck -ask -q "..." URL` asks Claude, ChatGPT, Gemini, Perplexity and
+Grok (whichever the user has API keys for) the questions, with web search on,
+and adds an `AI answers: <assistant>` line for each. It bills the user's keys,
+roughly a few cents to 50 cents per answer, so **ask before running it** and
+say how many answers it will make (questions x runs x assistants). Use real
+buyer questions, not the page title. Then:
+
+- **Read `answers.md`** (`ai_answers` in `files`). Check what each assistant
+  says about the site against the page: wrong prices, a missing feature, or
+  a different product with the same name. "Named" only means the name
+  appeared, so confirm it's this site they mean.
+- **"It searched"** is the real fan-out. Use those queries in the fan-out
+  table in place of your guesses, and pass the important ones back to `-q`.
+- **Never retrieved** means a discoverability problem (Bing, Brave, crawler
+  access, the page's words). **Retrieved but not cited** means the page didn't
+  answer as plainly as the ones cited.
+- **"Cited instead"** lists the pages to learn from and, for listicles,
+  review sites and Reddit threads, the places to get mentioned.
+- Say that these are API answers, which differ from the apps, and that counts
+  from a few runs are a sample, not a score.
+
 ## 5. Report back
 
 Lead with the three to five fixes that matter most, in plain language, each

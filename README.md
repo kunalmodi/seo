@@ -45,6 +45,14 @@ grade it against a checklist. sitecheck does that too, and adds:
   ahead, and checks whether the page answers each one in plain text. The
   result is a table of which searches you'd win, which you're missing, and the
   page you'd need to build.
+- **It asks the assistants and records what they do.** With `-ask`, it puts
+  the page's questions to Claude, ChatGPT, Gemini, Perplexity and Grok through
+  their APIs, with web search on, several times each. For each one it reports
+  how often the site was cited, retrieved or named, the exact searches the
+  assistant ran, and which sites it cited instead: the list of pages worth
+  getting mentioned on. The full answers are saved, so the agent can check
+  whether what they say about you is true. Paid trackers charge a monthly fee
+  for this; here it runs on your own API keys, when you ask for it.
 - **It separates the two kinds of AI crawler.** Search crawlers decide whether
   you can be cited. Training crawlers don't affect that, so blocking GPTBot or
   ClaudeBot is your call, never an error.
@@ -108,6 +116,8 @@ grade it against a checklist. sitecheck does that too, and adds:
 - Freshness, Content-Signal, llms.txt (reported, but not pushed: there's no
   evidence it helps)
 - Brave Search rank for the questions you name (`-q`)
+- With `-ask`: what each assistant searches for, retrieves and cites when
+  asked those questions, how often the site appears, and who is cited instead
 
 **Link previews**
 - Open Graph and X card tags as Facebook and X actually fetch them, duplicate
@@ -169,7 +179,7 @@ sitecheck https://go.dev/
 ```
 
 ```
-sitecheck 0.4.1: https://go.dev/
+sitecheck 0.5.0: https://go.dev/
 0 FAIL, 5 WARN, 23 INFO, 25 PASS
 
 ## top fixes
@@ -181,7 +191,8 @@ Run with -full for every finding by area, including 23 INFO notes, or -json.
 ```
 
 `-full` shows every finding by area, `-json` gives machine-readable output,
-`-no-psi` skips the ~30s performance check, and `-crawl 200` adds a site crawl.
+`-no-psi` skips the ~30s performance check, `-crawl 200` adds a site crawl, and
+`-ask -q "best X for Y"` samples the AI assistants (see below).
 The [CLI README](cmd/sitecheck/README.md) has every flag.
 
 ## AEO: what it pushes, and what it deliberately doesn't
@@ -204,9 +215,39 @@ What it won't push, and why:
   Google doesn't use them.
 - **"AI schema" or rewriting content into chunks:** Google says neither helps
   its AI features. Ordinary structured data still helps ordinary search.
-- **Promised citations:** answers vary from run to run. Instead, the skill
-  explains how to sample assistants properly: clean sessions, several runs,
-  and a log of what they searched for, retrieved and cited.
+- **Promised citations:** answers vary from run to run. Instead, `-ask`
+  samples the assistants several times and logs what they searched for,
+  retrieved and cited, and the skill explains how to repeat that by hand in
+  the apps with clean sessions.
+
+## Sampling AI answers
+
+```bash
+sitecheck -ask -q "best free screenwriting software" -q "is yourapp free" https://yourapp.example/
+```
+
+The output has one line per assistant, like this one from a real run:
+
+```
+INFO  AI answers: Grok: cited in 0 of 2 answers, retrieved in 0, named in 1.
+      It searched: "best free screenwriting software 2024 2025", "WriterDuet
+      vs Fade In vs Celtx free screenwriting", ... Cited instead: capterra.com
+      (1), apps.apple.com (1), ...
+```
+
+It asks each question twice by default (`-ask-runs`, up to 5), on every
+assistant you have a key for (`-ask-engines claude,chatgpt` narrows it), and
+saves the full answers to `answers.md`. Three things to know:
+
+- **It costs money**, on your own keys: each answer runs several web searches
+  and reads their results. Expect a few cents to about 50 cents per answer,
+  depending on the model. Nothing is sent without `-ask`.
+- **API answers aren't the apps.** ChatGPT and the others add their own
+  instructions, personalisation and sometimes a different search index in
+  their apps. Treat this as a proxy, and check the questions that matter by
+  hand too.
+- **Answers vary from run to run.** Read the counts across runs, not one
+  reply.
 
 ## Optional keys
 
@@ -220,6 +261,7 @@ through the setup.
 | `GSC_SERVICE_ACCOUNT_FILE` or `GOOGLE_OAUTH_CLIENT_FILE` | Search Console data for your sites (read-only) |
 | `BING_WEBMASTER_API_KEY` | Bing backlinks for your sites |
 | `BRAVE_SEARCH_API_KEY` | the page's Brave Search rank (the free plan works) |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `PERPLEXITY_API_KEY`, `XAI_API_KEY` | `-ask`: sampling that assistant's answers (any subset; paid per use) |
 
 ## Being polite
 

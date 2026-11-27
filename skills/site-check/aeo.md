@@ -192,6 +192,11 @@ and real runs vary. The user can confirm it with the prompt sampling below.
 The rules can't tell whether assistants actually cite the site. Suggest these
 checks, which are cheap and real:
 
+- **`sitecheck -ask`** automates the sampling below through the assistants'
+  APIs: it logs the searches each one ran, what it retrieved and what it
+  cited, over several runs. It's the quick first pass. It isn't the apps (no
+  app system prompt, no personalisation, sometimes a different search index),
+  so confirm the questions that matter by hand as described next.
 - **Prompt sampling.** Ask ChatGPT (with search), Claude, Perplexity and Google
   (to trigger an AI Overview) the questions the page should win. Do it
   properly or the result misleads:
