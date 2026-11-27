@@ -58,6 +58,23 @@ func TestCheckAnswers(t *testing.T) {
 	}
 }
 
+func TestStatementsAndMenusAreNotAnswers(t *testing.T) {
+	if isQuestion("Where the world transacts onchain.") {
+		t.Error("a heading ending in a period is a statement")
+	}
+	if !isQuestion("Where can I buy it") || !isQuestion("Is it free?") {
+		t.Error("questions without and with a question mark")
+	}
+	html := `<html><body><header><h1>Finds for your GLP journey</h1></header>
+<nav aria-label="Product categories"><a href="/">Featured</a><a href="/products/">All finds</a><a href="/c/supplements/">Supplements</a><a href="/c/protein/">Protein &amp; nutrition</a><a href="/c/hydration/">Hydration</a><a href="/c/skin/">Skin &amp; hair</a><a href="/c/travel/">Travel &amp; storage</a></nav>
+<div>Shop now Sort by Price Rating Newest Popular Filters Clear all Apply</div>
+<h2>Featured finds</h2><p>Lots of products for everyone to look at today and tomorrow.</p></body></html>`
+	got := answersFor(html, 400)
+	if g := got["Opening paragraph"]; strings.Contains(g.Detail, "All finds") || strings.Contains(g.Detail, "Sort by") || !strings.Contains(g.Detail, "almost no text") {
+		t.Errorf("menus aren't an opening paragraph: %+v", g)
+	}
+}
+
 func TestOpeningSkipsBylineLine(t *testing.T) {
 	html := `<html><body><h1>How much protein per day?</h1><p>Medically reviewed by Jerlyn Jones, RDN — Written by Tom Rush — Updated July 16, 2026</p>
 <p>Most adults need at least 0.8 g of protein per kg of body weight a day, and more when losing weight or training.</p>

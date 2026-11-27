@@ -169,7 +169,7 @@ sitecheck https://go.dev/
 ```
 
 ```
-sitecheck 0.4.0: https://go.dev/
+sitecheck 0.4.1: https://go.dev/
 0 FAIL, 5 WARN, 23 INFO, 25 PASS
 
 ## top fixes

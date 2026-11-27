@@ -403,7 +403,7 @@ func checkAnswerShape(r *report, d *doc) {
 			continue
 		}
 		t := strings.TrimSpace(h.text)
-		if strings.HasSuffix(t, "?") || questionStart.MatchString(t) {
+		if isQuestion(t) {
 			q++
 			if len(examples) < 3 {
 				examples = append(examples, fmt.Sprintf("%q", truncate(t, 60)))

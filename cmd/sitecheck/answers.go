@@ -27,15 +27,25 @@ type headedBlock struct {
 	para  string // the first paragraph of 12+ words in it, if any
 }
 
-var paraRe = regexp.MustCompile(`(?is)<p\b[^>]*>(.*?)</p\s*>`)
+var (
+	paraRe = regexp.MustCompile(`(?is)<p\b[^>]*>(.*?)</p\s*>`)
+	// Navigation and controls aren't answers: menus, forms and sidebars.
+	// Buttons stay, since FAQ accordions put the question inside one.
+	chromeRe   = regexp.MustCompile(`(?is)<(nav|form|select|aside|footer)\b.*?</(nav|form|select|aside|footer)\s*>`)
+	sentenceRe = regexp.MustCompile(`[\p{L}\p{N})”"'’][.!?:](\s|$)`)
+)
 
 // lead is what a reader meets first under the heading: the first real
-// paragraph (skipping bylines and dates), else the text as a whole.
+// paragraph (skipping bylines and dates), else the text as a whole when it
+// reads as prose (has a sentence in its first 40 words), else nothing.
 func (b headedBlock) lead() string {
 	if b.para != "" {
 		return b.para
 	}
-	return b.text
+	if sentenceRe.MatchString(firstWords(b.text, 40)) {
+		return b.text
+	}
+	return ""
 }
 
 // headedBlocks splits the server HTML at headings.
@@ -44,6 +54,7 @@ func headedBlocks(html string) []headedBlock {
 		html = m[1]
 	}
 	html = scriptStyleRe.ReplaceAllString(html, " ")
+	html = chromeRe.ReplaceAllString(html, " ")
 	ms := headingBlockRe.FindAllStringSubmatchIndex(html, -1)
 	var out []headedBlock
 	for i, m := range ms {
@@ -113,8 +124,8 @@ func directAnswer(question, text string) (bool, string) {
 
 func isQuestion(t string) bool {
 	t = strings.TrimSpace(t)
-	if strings.HasSuffix(t, ":") {
-		return false // a label ("How we reviewed this article:")
+	if strings.HasSuffix(t, ":") || strings.HasSuffix(t, ".") || strings.HasSuffix(t, "!") {
+		return false // a label or a statement ("Where the world transacts onchain.")
 	}
 	return strings.HasSuffix(t, "?") || questionStart.MatchString(t)
 }

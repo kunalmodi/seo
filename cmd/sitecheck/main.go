@@ -55,7 +55,7 @@ import (
 	"github.com/kunalmodi/seo/internal/env"
 )
 
-const version = "0.4.0"
+const version = "0.4.1"
 
 type level int
 
