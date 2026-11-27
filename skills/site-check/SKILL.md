@@ -119,6 +119,22 @@ hand. The short version:
    and don't call blocking *training* crawlers an error. Never promise
    citations.
 
+### Fan-out coverage
+
+When the user cares about AI search, or the page sells or compares something,
+do this yourself. It's the most AEO-specific advice you can give. Follow
+"Fan-out coverage" in [aeo.md](aeo.md):
+
+1. Write the page's target question, plus the 5-8 searches an assistant would
+   run to answer it. Mostly they're fact checks: free or not, limits, price,
+   compatibility, "vs <rival>", "<topic> <current year>".
+2. Run them with your own web search tool if you have one, and note where the
+   site ranks and who's ahead. Pass the three that matter most to
+   `sitecheck -q "..."` for exact Brave ranks.
+3. Check `content.md` for whether each fact is stated in plain text.
+4. Report it as a table: search, whether the site is retrieved (and who is
+   instead), whether the page answers it, and what to add.
+
 ## 5. Report back
 
 Lead with the three to five fixes that matter most, in plain language, each

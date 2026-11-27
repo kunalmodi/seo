@@ -125,6 +125,7 @@ func checkAEO(ctx context.Context, r *report, f *fetcher, pg *page, d *doc) {
 
 	// 5. Answer-shaped structure (judgment of quality is left to the reader).
 	checkAnswerShape(r, d)
+	checkAnswers(r, pg, d, words)
 	checkEvidence(r, pg, d, words)
 
 	// 6. llms.txt

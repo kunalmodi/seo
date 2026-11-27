@@ -18,8 +18,10 @@ var (
 	authorPathRe = regexp.MustCompile(`(?i)/(author|authors|writer|writers|people|team|staff|contributor|contributors|profile|profiles|experts?)/[^/?#]+`)
 	// "By Jane Doe" with capitalised names; up to four words.
 	byRe       = regexp.MustCompile(`\b(?:By|BY|by|Written by|Reviewed by|Words by)\s+((?:Dr\.?\s+)?[A-Z][\p{L}'.-]+(?:\s+[A-Z][\p{L}'.-]+){0,3})`)
-	byStopword = map[string]bool{"Clicking": true, "Using": true, "Continuing": true, "Signing": true, "The": true, "This": true, "Category": true, "Date": true}
-	photoHint  = regexp.MustCompile(`(?i)avatar|author|headshot|portrait|profile|gravatar|bio|team`)
+	byStopword = map[string]bool{"Clicking": true, "Using": true, "Continuing": true, "Signing": true, "The": true, "This": true, "Category": true, "Date": true,
+		"January": true, "February": true, "March": true, "April": true, "May": true, "June": true, "July": true, "August": true, "September": true, "October": true, "November": true, "December": true,
+		"Monday": true, "Tuesday": true, "Wednesday": true, "Thursday": true, "Friday": true, "Saturday": true, "Sunday": true, "Today": true, "Yesterday": true}
+	photoHint = regexp.MustCompile(`(?i)avatar|author|headshot|portrait|profile|gravatar|bio|team`)
 )
 
 func sameSite(a, b *url.URL) bool {
@@ -58,10 +60,24 @@ func wordOffset(text string, i int) int { return len(wordRe.FindAllString(text[:
 func checkByline(ctx context.Context, r *report, f *fetcher, pg *page, d *doc, art map[string]any) {
 	const a = "aeo"
 	ogType, _ := d.meta("og:type")
-	if art == nil && !strings.EqualFold(ogType, "article") {
-		return // bylines belong on articles, guides and reviews, not product or home pages
+	ymyl := ymylTopic(d)
+	isHome := pg.final.Path == "" || pg.final.Path == "/"
+	isProduct := false
+	for _, o := range ldObjectsOf(d) {
+		if ldHasType(o, "Product") {
+			isProduct = true
+		}
+	}
+	// Bylines belong on articles, guides and reviews, and on any health or
+	// money page that gives advice; not on product or home pages.
+	if art == nil && !strings.EqualFold(ogType, "article") && (ymyl == "" || isHome || isProduct) {
+		return
 	}
 	text := visibleText(pg.body)
+	if ymyl != "" {
+		defer checkReviewer(r, d, text, ymyl)
+		defer checkEditorialPage(r, pg, d, ymyl)
+	}
 	lower := strings.ToLower(text)
 
 	var names []string
@@ -290,4 +306,114 @@ func checkStockImages(r *report, pg *page, d *doc) {
 	default:
 		r.add(a, info, "Stock images", "%d of %d images look like stock photos (%s)", stock, content, strings.Join(ex, ", "))
 	}
+}
+
+var (
+	moneyRe = regexp.MustCompile(`(?i)\b(loans?|mortgages?|credit (cards?|scores?)|debt|tax(es)?|invest\w*|insurance|retire\w*|pensions?|crypto\w*|stocks?|budget\w*|salary|financ\w*|savings)\b`)
+	// "Medically reviewed by Dr. Sam Lee, MD"
+	reviewerRe   = regexp.MustCompile(`(?i:(?:medically|clinically|fact[- ]checked and|expert)?\s*reviewed by|fact[- ]checked by)\s+((?:Dr\.?\s+)?[A-Z][\p{L}'.-]+(?:\s+[A-Z][\p{L}'.-]+){0,3})(?:,?\s+(MD|M\.D\.|DO|RD|RDN|PharmD|Pharm\.D\.|PhD|Ph\.D\.|RN|NP|PA-C|MPH|CDCES|CFP|CPA|CFA|JD|Esq\.?))?`)
+	credentialRe = regexp.MustCompile(`\b(MD|M\.D\.|DO|RD|RDN|PharmD|PhD|RN|NP|PA-C|MPH|CDCES|CFP|CPA|CFA|JD)\b`)
+	editorialRe  = regexp.MustCompile(`(?i)\b(editorial (policy|guidelines|standards|process)|medical review|review (board|process|policy)|methodology|how we (test|review|rate|choose|research|make money)|fact[- ]check\w*|corrections( policy)?|our (standards|process))\b`)
+	aboutRe      = regexp.MustCompile(`(?i)(^|/)(about(-us)?|team|our-team|who-we-are)(/|$)|\babout( us)?\b|\bour team\b`)
+)
+
+// ymylTopic is "health" or "money" when the page's title, h1 or description
+// is on a topic Google holds to its highest bar ("Your Money or Your Life").
+func ymylTopic(d *doc) string {
+	title, _ := d.title()
+	desc, _ := d.meta("description")
+	h1 := ""
+	if h, ok := d.first("h1"); ok {
+		h1 = h.text
+	}
+	s := title + " " + h1 + " " + desc
+	switch {
+	case healthRe.MatchString(s):
+		return "health"
+	case moneyRe.MatchString(s):
+		return "money"
+	}
+	return ""
+}
+
+// ldObjectsOf returns every JSON-LD object on the page.
+func ldObjectsOf(d *doc) []map[string]any {
+	var objs []map[string]any
+	for _, s := range d.all("script") {
+		if !strings.EqualFold(strings.TrimSpace(s.attr("type")), "application/ld+json") {
+			continue
+		}
+		var v any
+		if json.Unmarshal([]byte(strings.TrimSpace(s.text)), &v) == nil {
+			objs = append(objs, ldObjects(v)...)
+		}
+	}
+	return objs
+}
+
+// checkReviewer looks for a named expert reviewer on a health or money page:
+// in JSON-LD reviewedBy, or a visible "Medically reviewed by ..." line.
+func checkReviewer(r *report, d *doc, text, topic string) {
+	const a = "aeo"
+	who := map[string]string{"health": "a clinician or dietitian", "money": "a CFP, CPA or similar"}[topic]
+	for _, o := range ldObjectsOf(d) {
+		for _, au := range ldAuthors(o["reviewedBy"]) {
+			if au.name != "" {
+				if credentialRe.MatchString(au.name) {
+					r.add(a, pass, "Reviewer", "%s (in reviewedBy markup)", au.name)
+				} else {
+					r.add(a, info, "Reviewer", "%s is named as reviewer in the markup; show their credentials on the page", au.name)
+				}
+				return
+			}
+		}
+	}
+	if m := reviewerRe.FindStringSubmatch(text); m != nil && !byStopword[strings.Fields(m[1])[0]] {
+		m[1] = trimRepeatedName(m[1])
+		if m[2] != "" {
+			r.add(a, pass, "Reviewer", "reviewed by %s, %s", m[1], m[2])
+		} else {
+			r.add(a, info, "Reviewer", "reviewed by %s, but no credentials are shown next to the name; say what qualifies them (e.g. RD, MD)", m[1])
+		}
+		return
+	}
+	r.add(a, info, "Reviewer", "no expert reviewer named on a %s page; a visible \"Reviewed by\" line with %s, linked to their profile, is the trust signal readers and Google's raters look for", topic, who)
+}
+
+// checkEditorialPage looks for a site-level page saying how content is made:
+// an editorial or review policy, or at least an About page.
+func checkEditorialPage(r *report, pg *page, d *doc, topic string) {
+	const a = "aeo"
+	var about string
+	for _, t := range d.all("a") {
+		u, err := pg.final.Parse(strings.TrimSpace(t.attr("href")))
+		if err != nil || !sameSite(u, pg.final) {
+			continue
+		}
+		label := cleanText(t.text)
+		if editorialRe.MatchString(label) || editorialRe.MatchString(strings.ReplaceAll(u.Path, "-", " ")) {
+			r.add(a, pass, "Editorial policy", "links to %s (%q)", u.Path, truncate(label, 40))
+			return
+		}
+		if about == "" && (aboutRe.MatchString(label) || aboutRe.MatchString(u.Path)) {
+			about = u.Path
+		}
+	}
+	if about != "" {
+		r.add(a, info, "Editorial policy", "links to an About page (%s) but no editorial or review policy; on %s topics, a page saying who writes and reviews the content, and how, backs up every byline", about, topic)
+		return
+	}
+	r.add(a, warn, "Editorial policy", "no link to an About page or an editorial policy on a %s page; say who runs the site, who writes and reviews the content, and how", topic)
+}
+
+// trimRepeatedName undoes names that run into themselves when a byline shows
+// the name twice ("Michael Lee Michael" → "Michael Lee").
+func trimRepeatedName(n string) string {
+	w := strings.Fields(n)
+	for i := 1; i < len(w); i++ {
+		if w[i] == w[0] {
+			return strings.Join(w[:i], " ")
+		}
+	}
+	return n
 }

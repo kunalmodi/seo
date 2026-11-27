@@ -37,6 +37,14 @@ grade it against a checklist. sitecheck does that too, and adds:
   - health pages with no named author or reviewer
   - translations that 404, are noindexed, or point their canonical back at
     the original language
+- **It checks the page against the searches assistants actually run.** When
+  ChatGPT or Claude answers, it splits the question into several searches,
+  mostly fact checks: is it free, what does it cost, does it work with X, how
+  does it compare, what's current this year. The skill writes those searches
+  for your page, runs them to see whether you're retrieved and who ranks
+  ahead, and checks whether the page answers each one in plain text. The
+  result is a table of which searches you'd win, which you're missing, and the
+  page you'd need to build.
 - **It separates the two kinds of AI crawler.** Search crawlers decide whether
   you can be cited. Training crawlers don't affect that, so blocking GPTBot or
   ClaudeBot is your call, never an error.
@@ -88,10 +96,15 @@ grade it against a checklist. sitecheck does that too, and adds:
 - Robots.txt and live fetches for each AI search and training crawler
 - How much of the text is in the server HTML (most AI crawlers don't run
   JavaScript)
-- Entity, author and date markup; a visible byline and an author page with a
-  photo, Person markup and `sameAs` profiles; stock photos
-- Answer-shaped structure, plus how many figures, quotations and cited sources
-  the page has (the strongest lever in the research)
+- **Does it answer its questions?** Whether each question heading is followed
+  by a direct answer in its first sentence, and whether the opening paragraph
+  answers the headline or clears its throat ("In today's world…")
+- **Who stands behind it?** A visible byline, and an author page with a photo,
+  Person markup and `sameAs` profiles. On health and money pages, even ones
+  not marked up as articles: a named expert reviewer with credentials, and a
+  link to an editorial or review policy
+- Entity and date markup, stock photos, and how many figures, quotations and
+  cited sources the page has (the strongest lever in the research)
 - Freshness, Content-Signal, llms.txt (reported, but not pushed: there's no
   evidence it helps)
 - Brave Search rank for the questions you name (`-q`)
@@ -156,15 +169,15 @@ sitecheck https://go.dev/
 ```
 
 ```
-sitecheck 0.3.0: https://go.dev/
-0 FAIL, 5 WARN, 21 INFO, 25 PASS
+sitecheck 0.4.0: https://go.dev/
+0 FAIL, 5 WARN, 23 INFO, 25 PASS
 
 ## top fixes
 WARN  [seo] Image alt text: 16 of 55 <img> have no alt attribute ...
 WARN  [seo] Sitemap: none found (looked at https://go.dev/sitemap.xml)
 WARN  [content] Title vs h1: they share no words ...
 ...
-Run with -full for every finding by area, including 21 INFO notes, or -json.
+Run with -full for every finding by area, including 23 INFO notes, or -json.
 ```
 
 `-full` shows every finding by area, `-json` gives machine-readable output,

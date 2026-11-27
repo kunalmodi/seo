@@ -1,6 +1,6 @@
 {
   "name": "sitecheck",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "SEO and AEO analysis for any website: crawler and AI-crawler access, site-wide indexing risks, on-page SEO, content, share previews, Core Web Vitals and Search Console data.",
   "author": {
     "name": "Kunal"

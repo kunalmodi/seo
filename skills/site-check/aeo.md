@@ -125,14 +125,67 @@ AlternativeTo and the small listicles that get cited; comparison pages last.
   first-hand pages did well in 2026's core updates (per SEO trackers, not
   Google). Recommend a visible byline linked to an author page with a real
   photo and credentials, and original photos over stock. Rank them below
-  access, indexing and evidence findings.
-- **Answer up top is your call, not a rule.** When reading `content.md`, say
-  whether the first paragraph after the headline answers the page's question
-  directly. If it opens with throat-clearing ("In today's world…"), suggest
+  access, indexing and evidence findings. On health and money pages the same
+  goes for **Reviewer** (a named expert, with credentials) and **Editorial
+  policy** (a page saying who writes and reviews the content, and how): worth
+  recommending, never presented as a ranking fix.
+- **Answer up top is your call, not a rule.** The "Opening paragraph" and
+  "Answers under questions" findings are heuristics: they flag throat-clearing
+  openers and answers that don't name what was asked. Read the passages
+  before repeating a miss, since a good answer can fail the word match. When
+  reading `content.md`, say whether the first paragraph after the headline
+  answers the page's question directly. If it opens with throat-clearing ("In today's world…"), suggest
   leading with the answer. Don't call it an "agent summary" requirement: Google
   says no AI-specific writing is needed.
 - **Don't promise citations.** Assistants' answers vary between runs, and
   nobody controls selection. Frame advice as raising the odds.
+
+## Fan-out coverage
+
+Assistants don't search for the user's question once. They split it into
+several searches (their "fan-out"), read what comes back and cite a few
+pages. In the field test above, nearly every fan-out search checked a hard
+fact. So the useful question is: for each search an assistant would run, is
+this site retrieved, and does the page answer it? *Confidence: anecdotal (one
+category), but it's what assistants visibly do, and Claude shows its searches.*
+
+1. **Write the fan-out.** From the page and `content.md`, write the question a
+   buyer or reader would ask an assistant ("best electrolyte drink for GLP-1
+   users"). Then write 5-8 searches that an assistant would plausibly run to
+   answer it:
+   - the question itself, and a version with the current year
+   - price and free-tier questions ("<product> price", "is <product> free")
+   - limits, sizes and compatibility ("<product> sugar content", "works with
+     <thing>")
+   - comparisons ("<product> vs <rival>", "<category> alternatives")
+   - one safety or trust check on health and money topics ("<product> side
+     effects", "is <product> safe")
+
+   Use the searchers' words, not the page's.
+2. **Check retrieval.** If you have a web search tool, run each search once.
+   Its results approximate what an assistant retrieves; Claude's web search
+   uses Brave's index. Note the site's position, or "not in the results", and
+   the two or three sites ahead of it. Pass the three most important to
+   `sitecheck -q "..."` for exact Brave ranks. Keep it to about 8 searches.
+   Bing (ChatGPT's main source) has no API, so suggest the user check bing.com
+   for the top two.
+3. **Check the answers.** For each search, find the sentence in `content.md`
+   that answers it. The fact has to be in plain text in the server HTML, not
+   in an image, a hidden tab or a script. sitecheck's "Answers under questions"
+   and "Opening paragraph" findings show whether the page leads with answers.
+4. **Report a table:**
+
+   | Search | Retrieved? (who's ahead) | Answered on the page? | Fix |
+   | --- | --- | --- | --- |
+
+   "Not retrieved" calls for discoverability work: indexing, title in the
+   searchers' words, a dedicated page. "Retrieved but not answered" calls for
+   adding the fact. "Neither" for an important search usually means the site
+   needs a page it doesn't have (a help doc, pricing, a comparison). Say which
+   searches the leading sites answer and this page doesn't.
+
+Don't present this as what ChatGPT *will* search. It's an informed guess,
+and real runs vary. The user can confirm it with the prompt sampling below.
 
 ## Checking AI visibility by hand
 

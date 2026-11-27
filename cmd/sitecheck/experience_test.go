@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// bylineSite serves an article at / and an author page at /authors/ana/.
+// bylineSite serves an article at /guides/x/ (any path but /authors/ana/) and an author page at /authors/ana/.
 func bylineSite(t *testing.T, article, author string) (*page, *doc, *fetcher) {
 	t.Helper()
 	mux := http.NewServeMux()
@@ -25,7 +25,7 @@ func bylineSite(t *testing.T, article, author string) (*page, *doc, *fetcher) {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	f := newFetcher(5*time.Second, browserUA)
-	pg, err := f.get(context.Background(), srv.URL+"/", "")
+	pg, err := f.get(context.Background(), srv.URL+"/guides/x/", "")
 	if err != nil {
 		t.Fatal(err)
 	}

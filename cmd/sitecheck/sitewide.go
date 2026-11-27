@@ -24,7 +24,7 @@ const (
 	maxAlternates     = 3 // hreflang alternates checked
 )
 
-var healthRe = regexp.MustCompile(`(?i)\b(stud(y|ies)|trials?|clinical|disease|cancer|kidney|liver|heart|cardio\w*|diabet\w*|obesity|doses?|dosage|medications?|medicines?|drugs?|treatments?|symptoms?|patients?|therap\w*|semaglutide|tirzepatide|ozempic|wegovy|mounjaro|insulin|blood|pregnan\w*|supplements?|side effects?|weight loss|mental health|anxiety|depression|vaccines?)\b`)
+var healthRe = regexp.MustCompile(`(?i)\b(stud(y|ies)|trials?|clinical|disease|cancer|kidney|liver|heart|cardio\w*|diabet\w*|obesity|doses?|dosage|medications?|medicines?|drugs?|treatments?|symptoms?|patients?|therap\w*|semaglutide|tirzepatide|ozempic|wegovy|mounjaro|insulin|blood|pregnan\w*|supplements?|side effects?|weight loss|health\w*|glp-?1|glp|nutrition\w*|diet(s|ary|itians?)?|vitamins?|doctors?|pharmac\w*|mental health|anxiety|depression|vaccines?)\b`)
 
 // section is a sitemap URL's first path segment ("/research/"), or "/" for
 // top-level pages.
